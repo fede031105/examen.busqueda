@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscador de Personas</title>
+    <!-- Bootstrap 5 CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light py-5 min-vh-100">
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow border-0 rounded-4 p-4">
+                <div class="card-body">
+                    <h2 class="text-center mb-4 fw-bold text-primary">Buscar Personas</h2>
+
+                    <div class="input-group mb-3">
+                        <input type="text" id="inputBusqueda" class="form-control form-control-lg" placeholder="Escribe al menos 3 caracteres..." oninput="buscarUsuarios()">
+                        <button class="btn btn-primary px-4" type="button" onclick="buscarUsuarios()">Buscar</button>
+                    </div>
+
+                    <div id="mensajeError" class="text-danger small mb-3 fw-semibold"></div>
+
+                    <div id="resultados" class="d-none mt-4">
+                        <h6 class="text-muted fw-bold mb-3">Resultados encontrados:</h6>
+                        <div id="listaResultados" class="list-group shadow-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function buscarUsuarios() {
+        const texto = document.getElementById('inputBusqueda').value.trim();
+        const divError = document.getElementById('mensajeError');
+        const divResultados = document.getElementById('resultados');
+        const listaResultados = document.getElementById('listaResultados');
+
+        divError.innerText = "";
+
+        // Restricción de mínimo 3 caracteres en tiempo real
+        if (texto.length > 0 && texto.length < 3) {
+            divError.innerText = "La búsqueda debe contener al menos 3 caracteres.";
+            divResultados.classList.add('d-none');
+            return;
+        }
+
+        if (texto.length < 3) {
+            divResultados.classList.add('d-none');
+            return;
+        }
+
+        fetch('/api/v1/usuarios/buscar?texto=' + encodeURIComponent(texto))
+            .then(async response => {
+                if (!response.ok) {
+                    const errorTxt = await response.text();
+                    throw new Error(errorTxt);
+                }
+                return response.json();
+            })
+            .then(data => {
+                let html = '';
+                if (data.length === 0) {
+                    html = '<div class="list-group-item text-muted py-3 text-center">No se encontraron coincidencias.</div>';
+                } else {
+                    data.forEach(user => {
+                        html += `
+                            <div class="list-group-item list-group-item-action d-flex align-items-center py-3">
+                                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold" style="width: 45px; height: 45px; font-size: 1.1rem;">
+                                    ${user.nombre.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">${user.nombre} ${user.apellidoPaterno} ${user.apellidoMateno || user.apellidoMaterno}</h6>
+                                    <small class="text-muted">@${user.usuario}</small>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+                listaResultados.innerHTML = html;
+                divResultados.classList.remove('d-none');
+            })
+            .catch(error => {
+                divError.innerText = error.message;
+                divResultados.classList.add('d-none');
+            });
+    }
+</script>
+</body>
+</html>
